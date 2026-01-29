@@ -2,10 +2,20 @@
 
 import json
 import os
+from datetime import datetime
 from functools import lru_cache
 
 import psycopg
 import redis
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """JSON encoder that handles datetime objects."""
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 # Environment variables
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -50,7 +60,7 @@ def cache_set(key: str, value: dict | list, ttl: int = CACHE_TTL) -> None:
     if not client:
         return
     try:
-        client.setex(key, ttl, json.dumps(value))
+        client.setex(key, ttl, json.dumps(value, cls=DateTimeEncoder))
     except redis.RedisError:
         pass
 
