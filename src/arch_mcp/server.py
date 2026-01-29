@@ -33,7 +33,8 @@ def tool_list_rules(category: str | None = None, severity: str | None = None) ->
     List Python API architecture rules.
 
     Args:
-        category: Filter by category (security, data-access, error-handling, api-design, logging, configuration, testing)
+        category: Filter by category (security, data-access, error-handling,
+            api-design, logging, configuration, testing)
         severity: Filter by severity (error, warning, info)
     """
     return list_rules(category, severity)
@@ -79,7 +80,8 @@ def tool_get_best_practices(category: str) -> dict:
     Get best practices for a category with code examples.
 
     Args:
-        category: Category (security, data-access, error-handling, api-design, logging, configuration, testing)
+        category: Category (security, data-access, error-handling, api-design,
+            logging, configuration, testing)
     """
     return get_best_practices(category)
 

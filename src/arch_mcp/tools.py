@@ -119,7 +119,12 @@ def check_architecture(files: list[dict], pattern: str = "clean-architecture") -
         # Determine current layer
         current_layer = None
         for layer in layers:
-            if f"/{layer}/" in path or path.startswith(f"{layer}/") or path.startswith(f"src/{layer}/"):
+            in_layer = (
+                f"/{layer}/" in path
+                or path.startswith(f"{layer}/")
+                or path.startswith(f"src/{layer}/")
+            )
+            if in_layer:
                 current_layer = layer
                 break
 
@@ -133,12 +138,13 @@ def check_architecture(files: list[dict], pattern: str = "clean-architecture") -
                     imported = match.group(1) or match.group(2)
                     for forbidden in cannot_import:
                         if forbidden in imported:
+                            msg = f"Layer '{current_layer}' cannot import from '{forbidden}'"
                             issues.append({
                                 "type": "layer-violation",
                                 "severity": "error",
                                 "file": path,
                                 "line": line_num,
-                                "message": f"Layer '{current_layer}' cannot import from '{forbidden}'",
+                                "message": msg,
                                 "import": imported,
                             })
 

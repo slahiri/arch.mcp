@@ -24,10 +24,22 @@ src/
 │   └── config.py               # Pydantic settings
 └── main.py""",
         "layers": {
-            "api": {"can_import": ["application", "domain", "core"], "cannot_import": ["infrastructure"]},
-            "application": {"can_import": ["domain", "core"], "cannot_import": ["api", "infrastructure"]},
-            "domain": {"can_import": [], "cannot_import": ["api", "application", "infrastructure", "core"]},
-            "infrastructure": {"can_import": ["domain", "application", "core"], "cannot_import": ["api"]},
+            "api": {
+                "can_import": ["application", "domain", "core"],
+                "cannot_import": ["infrastructure"],
+            },
+            "application": {
+                "can_import": ["domain", "core"],
+                "cannot_import": ["api", "infrastructure"],
+            },
+            "domain": {
+                "can_import": [],
+                "cannot_import": ["api", "application", "infrastructure", "core"],
+            },
+            "infrastructure": {
+                "can_import": ["domain", "application", "core"],
+                "cannot_import": ["api"],
+            },
         },
         "principles": [
             "Dependencies point inward: infrastructure → application → domain",
