@@ -1,5 +1,6 @@
 [build]
 builder = "nixpacks"
+buildCommand = "pip install ."
 
 [deploy]
-startCommand = "pip install -e . && arch-mcp"
+startCommand = "arch-mcp"
