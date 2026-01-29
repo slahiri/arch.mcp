@@ -10,9 +10,8 @@ RUN pip install --no-cache-dir .
 
 # Set environment variables
 ENV MCP_TRANSPORT=http
-ENV MCP_PORT=8000
 
-# Expose port
+# Expose port (Railway sets PORT dynamically)
 EXPOSE 8000
 
 # Run server
