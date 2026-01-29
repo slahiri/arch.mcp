@@ -5,9 +5,10 @@ An MCP server providing architecture rules and best practices for Python APIs.
 Built with FastMCP 3.0.
 """
 
+import os
+
 from fastmcp import FastMCP
 
-from .rules import RULES
 from .tools import (
     check_architecture,
     get_architecture_guide,
@@ -124,7 +125,8 @@ def resource_rules() -> str:
 def resource_categories() -> str:
     """All rule categories"""
     import json
-    return json.dumps({"categories": list(RULES.keys())}, indent=2)
+    result = list_rules()
+    return json.dumps({"categories": result.get("categories", [])}, indent=2)
 
 
 @mcp.resource("arch://guide")
@@ -139,9 +141,51 @@ def resource_guide() -> str:
 # ============================================================================
 
 
+def init_database():
+    """Initialize database and seed data if needed."""
+    if not os.environ.get("DATABASE_URL"):
+        return
+
+    from .db import fetch_rules, init_db, seed_rules, seed_structures
+    from .rules import ALL_RULES
+    from .structures import STRUCTURES
+
+    # Initialize tables
+    init_db()
+
+    # Seed if empty
+    existing = fetch_rules()
+    if not existing:
+        seed_rules(ALL_RULES)
+        seed_structures(STRUCTURES)
+        print("Database seeded with default rules and structures")
+
+
 def main():
-    """Run the MCP server."""
-    mcp.run()
+    """Run the MCP server.
+
+    Supports two modes:
+    - stdio (default): For local CLI usage with Claude Code/Cursor
+    - http: For hosted service deployment (set MCP_TRANSPORT=http)
+
+    Environment variables:
+    - MCP_TRANSPORT: "stdio" (default) or "http"
+    - MCP_HOST: Host to bind (default: "0.0.0.0")
+    - MCP_PORT: Port to bind (default: 8000)
+    - DATABASE_URL: PostgreSQL connection string (optional)
+    - REDIS_URL: Redis connection string (optional)
+    """
+    # Initialize database if configured
+    init_database()
+
+    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+
+    if transport == "http":
+        host = os.environ.get("MCP_HOST", "0.0.0.0")
+        port = int(os.environ.get("MCP_PORT", "8000"))
+        mcp.run(transport="http", host=host, port=port)
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":
