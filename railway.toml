@@ -1,6 +1,7 @@
 [build]
-builder = "nixpacks"
-buildCommand = "pip install ."
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "arch-mcp"
+healthcheckPath = "/"
+restartPolicyType = "on_failure"
