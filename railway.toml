@@ -1,7 +1,0 @@
-[build]
-builder = "nixpacks"
-
-[deploy]
-startCommand = "arch-mcp"
-healthcheckPath = "/"
-restartPolicyType = "on_failure"
