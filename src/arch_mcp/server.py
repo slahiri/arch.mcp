@@ -184,7 +184,7 @@ def main():
         host = os.environ.get("MCP_HOST", "0.0.0.0")
         # Railway sets PORT, fallback to MCP_PORT or 8000
         port = int(os.environ.get("PORT", os.environ.get("MCP_PORT", "8000")))
-        mcp.run(transport="http", host=host, port=port)
+        mcp.run(transport="sse", host=host, port=port)
     else:
         mcp.run()
 
