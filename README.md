@@ -1,74 +1,76 @@
 # arch-mcp
 
 [![CI](https://github.com/slahiri/arch.mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/slahiri/arch.mcp/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/arch-mcp.svg)](https://pypi.org/project/arch-mcp/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
 
-MCP server for Python API architecture controls. Validates code against architecture rules and best practices. Built with FastMCP 3.0.
+MCP server for Python API architecture controls. Validates code against architecture rules and best practices.
 
 ## Quick Start
 
-### 1. Clone and Install
+### Option 1: Hosted (Recommended)
 
+No install needed. Just add to your config:
+
+**Claude Code:**
 ```bash
-git clone https://github.com/slahiri/arch.mcp.git
-cd arch.mcp
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install
-pip install -e .
+claude mcp add arch-controls --url https://arch-mcp.sid.sh/sse
 ```
 
-### 2. Connect to Your IDE
+**Cursor** (`.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "arch-controls": {
+      "url": "https://arch-mcp.sid.sh/sse"
+    }
+  }
+}
+```
 
-#### Claude Code
+### Option 2: Local via uvx
 
+Run locally without installing:
+
+**Claude Code:**
+```bash
+claude mcp add arch-controls -- uvx arch-mcp
+```
+
+**Cursor** (`.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "arch-controls": {
+      "command": "uvx",
+      "args": ["arch-mcp"]
+    }
+  }
+}
+```
+
+### Option 3: Local Install
+
+```bash
+pip install arch-mcp
+```
+
+**Claude Code:**
 ```bash
 claude mcp add arch-controls -- arch-mcp
 ```
 
-Or add manually to `~/.claude/claude_desktop_config.json`:
-
+**Cursor** (`.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
     "arch-controls": {
-      "command": "/path/to/arch.mcp/venv/bin/arch-mcp"
+      "command": "arch-mcp"
     }
   }
 }
 ```
-
-#### Cursor
-
-Add to `.cursor/mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "arch-controls": {
-      "command": "/path/to/arch.mcp/venv/bin/arch-mcp"
-    }
-  }
-}
-```
-
-Or add globally to `~/.cursor/mcp.json`.
-
-> **Note**: Replace `/path/to/arch.mcp` with the actual path where you cloned the repository.
-
-### 3. Verify Connection
-
-In Claude Code, run:
-```bash
-claude mcp list
-```
-
-In Cursor, open the MCP panel to see connected servers.
 
 ## Tools
 
@@ -82,14 +84,6 @@ In Cursor, open the MCP panel to see connected servers.
 | `tool_check_architecture` | Check codebase for layer violations |
 | `tool_get_architecture_guide` | Complete architecture guide |
 
-## Resources
-
-| Resource | Description |
-|----------|-------------|
-| `arch://rules` | All architecture rules as JSON |
-| `arch://categories` | List of rule categories |
-| `arch://guide` | Complete architecture guide |
-
 ## Rule Categories
 
 - **security** - Secrets management, SQL injection prevention, input validation
@@ -101,8 +95,6 @@ In Cursor, open the MCP panel to see connected servers.
 - **testing** - Pytest patterns, fixtures
 
 ## Architecture Patterns
-
-The server supports three architecture patterns:
 
 - **clean-architecture** - Domain-driven with clear layer separation
 - **feature-based** - Organized by feature/module
@@ -120,7 +112,8 @@ Once connected, ask your AI assistant:
 ## Development
 
 ```bash
-# Install dev dependencies
+git clone https://github.com/slahiri/arch.mcp.git
+cd arch.mcp
 pip install -e ".[dev]"
 
 # Run tests
@@ -130,34 +123,6 @@ PYTHONPATH=src pytest tests/ -v
 ruff check src/
 ```
 
-## Troubleshooting
-
-### Server not connecting
-
-1. Ensure the virtual environment is activated when installing
-2. Use absolute paths in MCP config files
-3. Check that `arch-mcp` is in your PATH: `which arch-mcp`
-
-### Command not found
-
-If `arch-mcp` isn't found, use the full path:
-```bash
-/path/to/arch.mcp/venv/bin/arch-mcp
-```
-
-### Cursor not detecting server
-
-1. Restart Cursor after adding MCP config
-2. Check `.cursor/mcp.json` syntax is valid JSON
-3. Ensure the command path is absolute
-
 ## License
 
 MIT
-
-## Links
-
-- [FastMCP](https://github.com/jlowin/fastmcp)
-- [MCP Protocol](https://modelcontextprotocol.io)
-- [Claude Code](https://docs.anthropic.com/claude-code)
-- [Cursor](https://cursor.sh)
