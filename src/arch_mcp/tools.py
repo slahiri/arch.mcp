@@ -428,3 +428,409 @@ def init_rules() -> dict:
     from .config import init_custom_rules
     init_custom_rules()
     return {"status": "ok", "message": "Custom rules file created"}
+
+
+def scaffold_project(name: str, description: str = "") -> dict:
+    """Scaffold a new Python microservice project.
+
+    Args:
+        name: Project name (e.g., 'product-service', 'user-api')
+        description: Optional project description
+    """
+    from pathlib import Path
+
+    from .scaffold import scaffold_project as do_scaffold
+
+    try:
+        do_scaffold(name, Path.cwd())
+        return {
+            "status": "ok",
+            "message": f"Project '{name}' scaffolded successfully",
+            "project_path": str(Path.cwd() / name),
+            "next_steps": [
+                f"cd {name}",
+                "python -m venv .venv",
+                "source .venv/bin/activate  # Windows: .venv\\Scripts\\activate",
+                "pip install -e '.[dev]'",
+                "pytest  # Run tests",
+                "uvicorn src.main:app --reload  # Start server",
+            ],
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+def scaffold_feature(feature_name: str) -> dict:
+    """Scaffold a new feature module with all required files.
+
+    Creates the full feature structure following TDD:
+    - schemas.py (Pydantic models)
+    - errors.py (Custom exceptions)
+    - repository.py (Data access interface)
+    - service.py (Business logic)
+    - router.py (API endpoints)
+    - tests/ (Test files)
+
+    Args:
+        feature_name: Feature name in singular form (e.g., 'product', 'user', 'order')
+    """
+    from pathlib import Path
+
+    feature = feature_name.lower().replace("-", "_").replace(" ", "_")
+    feature_pascal = "".join(word.capitalize() for word in feature.split("_"))
+    feature_plural = feature + "s"
+
+    # Check if we're in a project directory
+    src_dir = Path.cwd() / "src" / "features"
+    tests_dir = Path.cwd() / "tests" / "features"
+
+    if not src_dir.exists():
+        return {
+            "status": "error",
+            "message": "Not in a project directory. Run scaffold_project first.",
+        }
+
+    feature_dir = src_dir / feature
+    test_dir = tests_dir / feature
+
+    if feature_dir.exists():
+        return {
+            "status": "error",
+            "message": f"Feature '{feature}' already exists at {feature_dir}",
+        }
+
+    # Create directories
+    feature_dir.mkdir(parents=True, exist_ok=True)
+    test_dir.mkdir(parents=True, exist_ok=True)
+
+    # schemas.py
+    (feature_dir / "schemas.py").write_text(f'''"""Pydantic schemas for {feature}."""
+from decimal import Decimal
+
+from pydantic import BaseModel, Field
+
+
+class {feature_pascal}Create(BaseModel):
+    """Request schema for creating a {feature}."""
+
+    name: str = Field(..., min_length=1, max_length=200)
+    # Add more fields as needed
+
+
+class {feature_pascal}Update(BaseModel):
+    """Request schema for updating a {feature}."""
+
+    name: str | None = Field(None, min_length=1, max_length=200)
+
+
+class {feature_pascal}Response(BaseModel):
+    """Response schema for {feature}."""
+
+    id: str
+    name: str
+
+    model_config = {{"from_attributes": True}}
+''')
+
+    # errors.py
+    (feature_dir / "errors.py").write_text(f'''"""Custom exceptions for {feature}."""
+from src.shared.errors import AppError
+
+
+class {feature_pascal}Error(AppError):
+    """Base error for {feature} operations."""
+
+    pass
+
+
+class {feature_pascal}NotFoundError({feature_pascal}Error):
+    """Raised when {feature} is not found."""
+
+    def __init__(self, {feature}_id: str):
+        self.{feature}_id = {feature}_id
+        super().__init__(
+            message=f"{feature_pascal} '{{ {feature}_id }}' not found",
+            code="{feature.upper()}_NOT_FOUND",
+            status_code=404,
+        )
+
+
+class {feature_pascal}ValidationError({feature_pascal}Error):
+    """Raised when {feature} validation fails."""
+
+    def __init__(self, message: str):
+        super().__init__(
+            message=message,
+            code="{feature.upper()}_VALIDATION_ERROR",
+            status_code=400,
+        )
+''')
+
+    # repository.py
+    (feature_dir / "repository.py").write_text(f'''"""Data access for {feature}."""
+import uuid
+from typing import Protocol
+
+
+class {feature_pascal}Repository(Protocol):
+    """Repository interface for {feature} persistence."""
+
+    async def save(self, entity: dict) -> dict:
+        """Save and return with generated id."""
+        ...
+
+    async def get(self, {feature}_id: str) -> dict | None:
+        """Get by id, returns None if not found."""
+        ...
+
+    async def delete(self, {feature}_id: str) -> bool:
+        """Delete, returns True if deleted."""
+        ...
+
+    async def list_all(self) -> list[dict]:
+        """List all {feature_plural}."""
+        ...
+
+
+class InMemory{feature_pascal}Repository:
+    """In-memory implementation for development/testing."""
+
+    def __init__(self):
+        self._{feature_plural}: dict[str, dict] = {{}}
+
+    async def save(self, entity: dict) -> dict:
+        {feature}_id = str(uuid.uuid4())
+        record = {{"id": {feature}_id, **entity}}
+        self._{feature_plural}[{feature}_id] = record
+        return record
+
+    async def get(self, {feature}_id: str) -> dict | None:
+        return self._{feature_plural}.get({feature}_id)
+
+    async def delete(self, {feature}_id: str) -> bool:
+        if {feature}_id in self._{feature_plural}:
+            del self._{feature_plural}[{feature}_id]
+            return True
+        return False
+
+    async def list_all(self) -> list[dict]:
+        return list(self._{feature_plural}.values())
+''')
+
+    # service.py
+    (feature_dir / "service.py").write_text(f'''"""Business logic for {feature}."""
+import structlog
+
+from .errors import {feature_pascal}NotFoundError
+from .repository import {feature_pascal}Repository
+from .schemas import {feature_pascal}Create
+
+logger = structlog.get_logger()
+
+
+class {feature_pascal}Service:
+    """Service for {feature} operations."""
+
+    def __init__(self, repository: {feature_pascal}Repository):
+        self._repository = repository
+
+    async def create(self, data: {feature_pascal}Create) -> dict:
+        """Create a new {feature}."""
+        logger.info("creating_{feature}", name=data.name)
+
+        entity = data.model_dump()
+        result = await self._repository.save(entity)
+
+        logger.info("{feature}_created", {feature}_id=result["id"])
+        return result
+
+    async def get_by_id(self, {feature}_id: str) -> dict:
+        """Get a {feature} by id."""
+        result = await self._repository.get({feature}_id)
+
+        if not result:
+            logger.warning("{feature}_not_found", {feature}_id={feature}_id)
+            raise {feature_pascal}NotFoundError({feature}_id)
+
+        return result
+
+    async def list_all(self) -> list[dict]:
+        """List all {feature_plural}."""
+        return await self._repository.list_all()
+''')
+
+    # router.py
+    (feature_dir / "router.py").write_text(f'''"""API routes for {feature}."""
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from .errors import {feature_pascal}NotFoundError
+from .repository import InMemory{feature_pascal}Repository, {feature_pascal}Repository
+from .schemas import {feature_pascal}Create, {feature_pascal}Response
+from .service import {feature_pascal}Service
+
+router = APIRouter(prefix="/api/{feature_plural}", tags=["{feature_plural}"])
+
+# Dependency injection
+_repository = InMemory{feature_pascal}Repository()
+
+
+def get_repository() -> {feature_pascal}Repository:
+    return _repository
+
+
+def get_{feature}_service(
+    repository: {feature_pascal}Repository = Depends(get_repository),
+) -> {feature_pascal}Service:
+    return {feature_pascal}Service(repository=repository)
+
+
+@router.post("/", response_model={feature_pascal}Response, status_code=status.HTTP_201_CREATED)
+async def create_{feature}(
+    data: {feature_pascal}Create,
+    service: {feature_pascal}Service = Depends(get_{feature}_service),
+) -> {feature_pascal}Response:
+    """Create a new {feature}."""
+    result = await service.create(data)
+    return {feature_pascal}Response(**result)
+
+
+@router.get("/{{{feature}_id}}", response_model={feature_pascal}Response)
+async def get_{feature}(
+    {feature}_id: str,
+    service: {feature_pascal}Service = Depends(get_{feature}_service),
+) -> {feature_pascal}Response:
+    """Get a {feature} by id."""
+    try:
+        result = await service.get_by_id({feature}_id)
+        return {feature_pascal}Response(**result)
+    except {feature_pascal}NotFoundError as e:
+        raise HTTPException(status_code=404, detail=e.message)
+
+
+@router.get("/", response_model=list[{feature_pascal}Response])
+async def list_{feature_plural}(
+    service: {feature_pascal}Service = Depends(get_{feature}_service),
+) -> list[{feature_pascal}Response]:
+    """List all {feature_plural}."""
+    results = await service.list_all()
+    return [{feature_pascal}Response(**r) for r in results]
+''')
+
+    # __init__.py
+    (feature_dir / "__init__.py").write_text(f'''"""{feature_pascal} feature module."""
+from .router import router
+
+__all__ = ["router"]
+''')
+
+    # Test files
+    (test_dir / "__init__.py").write_text("")
+
+    (test_dir / "test_schemas.py").write_text(f'''"""Tests for {feature} schemas."""
+import pytest
+from pydantic import ValidationError
+
+
+class Test{feature_pascal}Create:
+    def test_valid_{feature}(self):
+        from src.features.{feature}.schemas import {feature_pascal}Create
+
+        data = {feature_pascal}Create(name="Test")
+        assert data.name == "Test"
+
+    def test_name_required(self):
+        from src.features.{feature}.schemas import {feature_pascal}Create
+
+        with pytest.raises(ValidationError):
+            {feature_pascal}Create()
+''')
+
+    (test_dir / "test_service.py").write_text(f'''"""Tests for {feature} service."""
+import pytest
+from unittest.mock import AsyncMock
+
+
+@pytest.fixture
+def mock_repository():
+    repo = AsyncMock()
+    repo.save.return_value = {{"id": "123", "name": "Test"}}
+    repo.get.return_value = None
+    return repo
+
+
+class Test{feature_pascal}ServiceCreate:
+    @pytest.mark.asyncio
+    async def test_create_returns_{feature}(self, mock_repository):
+        from src.features.{feature}.service import {feature_pascal}Service
+        from src.features.{feature}.schemas import {feature_pascal}Create
+
+        service = {feature_pascal}Service(repository=mock_repository)
+        result = await service.create({feature_pascal}Create(name="Test"))
+
+        assert result["id"] == "123"
+        mock_repository.save.assert_called_once()
+
+
+class Test{feature_pascal}ServiceGetById:
+    @pytest.mark.asyncio
+    async def test_raises_not_found(self, mock_repository):
+        from src.features.{feature}.service import {feature_pascal}Service
+        from src.features.{feature}.errors import {feature_pascal}NotFoundError
+
+        service = {feature_pascal}Service(repository=mock_repository)
+
+        with pytest.raises({feature_pascal}NotFoundError):
+            await service.get_by_id("nonexistent")
+''')
+
+    (test_dir / "test_router.py").write_text(f'''"""Tests for {feature} API endpoints."""
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+
+@pytest.fixture
+async def client():
+    from src.main import app
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as ac:
+        yield ac
+
+
+class TestCreate{feature_pascal}:
+    @pytest.mark.asyncio
+    async def test_returns_201(self, client):
+        response = await client.post("/api/{feature_plural}/", json={{"name": "Test"}})
+        assert response.status_code == 201
+
+
+class TestGet{feature_pascal}:
+    @pytest.mark.asyncio
+    async def test_not_found_returns_404(self, client):
+        response = await client.get("/api/{feature_plural}/nonexistent")
+        assert response.status_code == 404
+''')
+
+    return {
+        "status": "ok",
+        "message": f"Feature '{feature}' scaffolded successfully",
+        "files_created": [
+            f"src/features/{feature}/schemas.py",
+            f"src/features/{feature}/errors.py",
+            f"src/features/{feature}/repository.py",
+            f"src/features/{feature}/service.py",
+            f"src/features/{feature}/router.py",
+            f"src/features/{feature}/__init__.py",
+            f"tests/features/{feature}/test_schemas.py",
+            f"tests/features/{feature}/test_service.py",
+            f"tests/features/{feature}/test_router.py",
+        ],
+        "next_steps": [
+            f"Add 'from src.features.{feature} import router as {feature}_router' to src/main.py",
+            f"Add 'app.include_router({feature}_router)' to src/main.py",
+            "Run: pytest tests/features/{feature}/ -v",
+            "Customize schemas, service logic as needed",
+        ],
+    }

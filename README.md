@@ -80,6 +80,8 @@ security:
 
 | Tool | Description |
 |------|-------------|
+| `tool_scaffold_project` | **Create a new microservice project** |
+| `tool_scaffold_feature` | **Add a feature module with tests** |
 | `tool_list_rules` | List architecture rules (filter by category/severity) |
 | `tool_get_rule` | Get rule details with code examples |
 | `tool_validate_code` | Validate code against architecture rules |
@@ -114,11 +116,22 @@ security:
 
 Once connected, ask your AI assistant:
 
-- "Get the TDD workflow for implementing a user feature"
-- "Generate a service template for orders"
+**Create a project:**
+- "Create a new microservice called order-service"
+- "Scaffold a product-api project"
+
+**Add features:**
+- "Add a product feature to my project"
+- "Scaffold a user feature with tests"
+
+**Get guidance:**
+- "Get the TDD workflow for implementing payments"
 - "Show me the naming conventions"
+- "What's the recommended project structure?"
+
+**Validate code:**
 - "Validate this code against architecture rules"
-- "Initialize custom rules for this project"
+- "Check my codebase for architecture violations"
 
 ## Development
 

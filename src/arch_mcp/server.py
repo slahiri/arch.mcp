@@ -20,6 +20,8 @@ from .tools import (
     get_tdd_workflow,
     init_rules,
     list_rules,
+    scaffold_feature,
+    scaffold_project,
     validate_code,
 )
 
@@ -165,6 +167,52 @@ def tool_init_rules() -> dict:
     Edit this file to add, remove, or modify architecture rules for your project.
     """
     return init_rules()
+
+
+@mcp.tool()
+def tool_scaffold_project(name: str, description: str = "") -> dict:
+    """
+    Scaffold a new Python microservice project.
+
+    Creates a complete project structure with:
+    - FastAPI setup with health endpoints
+    - Pydantic settings configuration
+    - Structured logging with structlog
+    - Pytest setup with 80% coverage requirement
+    - Docker and docker-compose files
+    - GitHub Actions CI/CD workflow
+    - Base error classes and shared schemas
+
+    Args:
+        name: Project name (e.g., 'product-service', 'user-api')
+        description: Optional project description
+
+    Example: "Scaffold a new project called order-service"
+    """
+    return scaffold_project(name, description)
+
+
+@mcp.tool()
+def tool_scaffold_feature(feature_name: str) -> dict:
+    """
+    Scaffold a new feature module with all required files.
+
+    Creates the complete feature structure following TDD and naming conventions:
+    - schemas.py (Pydantic request/response models)
+    - errors.py (Custom exception classes)
+    - repository.py (Data access interface + in-memory implementation)
+    - service.py (Business logic)
+    - router.py (FastAPI endpoints with dependency injection)
+    - Test files for schemas, service, and router
+
+    Args:
+        feature_name: Feature name in singular form (e.g., 'product', 'user', 'order')
+
+    Example: "Add a product feature to my project"
+
+    Note: Must be run from within a scaffolded project directory.
+    """
+    return scaffold_feature(feature_name)
 
 
 # ============================================================================
