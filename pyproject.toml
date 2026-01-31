@@ -18,6 +18,7 @@ dev = [
 
 [project.scripts]
 arch-mcp = "arch_mcp.server:main"
+arch-mcp-scaffold = "arch_mcp.scaffold:main"
 
 [build-system]
 requires = ["hatchling"]
