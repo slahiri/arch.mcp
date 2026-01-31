@@ -7,19 +7,14 @@
 
 MCP server for Python API architecture controls. Validates code against architecture rules and best practices.
 
-## Quick Start
+## Remote Service
+
+Use the hosted MCP server at `https://arch-mcp.sid.sh/sse` - no installation required.
 
 ### Claude Code
 
 ```bash
-# Hosted (recommended)
 claude mcp add arch-controls --url https://arch-mcp.sid.sh/sse
-
-# Or local via uvx
-claude mcp add arch-controls -- uvx arch-mcp
-
-# Or local via pip
-pip install arch-mcp && claude mcp add arch-controls -- arch-mcp
 ```
 
 ### Cursor
@@ -36,7 +31,24 @@ Add to `.cursor/mcp.json`:
 }
 ```
 
-Or run locally:
+## Running Locally
+
+Run the MCP server on your own machine.
+
+### Claude Code
+
+```bash
+# Via uvx (recommended)
+claude mcp add arch-controls -- uvx arch-mcp
+
+# Or via pip
+pip install arch-mcp
+claude mcp add arch-controls -- arch-mcp
+```
+
+### Cursor
+
+Add to `.cursor/mcp.json`:
 
 ```json
 {
