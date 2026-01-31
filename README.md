@@ -7,6 +7,8 @@
 
 MCP server for Python API architecture controls. Validates code against architecture rules and best practices.
 
+**[Tutorial: Build a Python Microservice](docs/TUTORIAL.md)** - Step-by-step guide using arch-mcp in Cursor and Claude Code.
+
 ## Remote Service
 
 Use the hosted MCP server at `https://arch-mcp.sid.sh/sse` - no installation required.
@@ -72,16 +74,21 @@ Add to `.cursor/mcp.json`:
 | `tool_get_best_practices` | Get best practices by category |
 | `tool_check_architecture` | Check codebase for layer violations |
 | `tool_get_architecture_guide` | Complete architecture guide |
+| `tool_get_naming_conventions` | **Mandatory** naming patterns for files, classes, functions |
+| `tool_get_file_template` | Generate starter files with correct naming |
+| `tool_get_tdd_workflow` | Step-by-step TDD workflow for a feature |
 
 ## Rule Categories
 
+- **naming** - File, class, and function naming conventions (mandatory)
+- **structure** - Project organization and modularization rules
 - **security** - Secrets management, SQL injection prevention, input validation
 - **data-access** - Repository pattern, async database operations
 - **error-handling** - Custom exceptions, specific exception catches
 - **api-design** - Pydantic schemas, dependency injection
 - **logging** - Structured logging, no print statements
 - **configuration** - Pydantic settings, environment variables
-- **testing** - Pytest patterns, fixtures
+- **testing** - TDD workflow, pytest patterns, 80% coverage minimum
 
 ## Architecture Patterns
 
@@ -93,9 +100,10 @@ Add to `.cursor/mcp.json`:
 
 Once connected, ask your AI assistant:
 
-- "List all security rules"
+- "Get the TDD workflow for implementing a user feature"
+- "Generate a service template for orders"
+- "Show me the naming conventions"
 - "Validate this code against architecture rules"
-- "Show me the recommended project structure"
 - "Check if my imports follow clean architecture"
 
 ## Development

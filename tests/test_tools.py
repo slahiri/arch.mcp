@@ -3,8 +3,11 @@
 from arch_mcp.tools import (
     check_architecture,
     get_best_practices,
+    get_file_template,
+    get_naming_conventions,
     get_project_structure,
     get_rule,
+    get_tdd_workflow,
     list_rules,
     validate_code,
 )
@@ -95,3 +98,64 @@ def test_check_architecture_violation():
     result = check_architecture(files)
     assert result["consistent"] is False
     assert result["summary"]["errors"] > 0
+
+
+def test_get_naming_conventions():
+    result = get_naming_conventions()
+    assert "conventions" in result
+    assert "files" in result["conventions"]
+    assert "classes" in result["conventions"]
+    assert "functions" in result["conventions"]
+
+
+def test_get_file_template_service():
+    result = get_file_template("service", "user")
+    assert result["template_type"] == "service"
+    assert result["resource"] == "user"
+    assert "UserService" in result["content"]
+    assert "user_service.py" in result["filename"]
+
+
+def test_get_file_template_schemas():
+    result = get_file_template("schemas", "product")
+    assert "ProductCreate" in result["content"]
+    assert "ProductResponse" in result["content"]
+
+
+def test_get_file_template_invalid():
+    result = get_file_template("invalid", "user")
+    assert "error" in result
+    assert "available" in result
+
+
+def test_get_tdd_workflow():
+    result = get_tdd_workflow("order")
+    assert "steps" in result
+    assert len(result["steps"]) >= 5
+    assert "test_commands" in result
+    assert "coverage_requirement" in result
+    # Verify it uses the correct resource name
+    assert "OrderService" in str(result) or "order" in str(result["steps"][0])
+
+
+def test_list_rules_includes_naming_category():
+    result = list_rules()
+    assert "naming" in result["categories"]
+
+
+def test_list_rules_includes_structure_category():
+    result = list_rules()
+    assert "structure" in result["categories"]
+
+
+def test_list_rules_naming_rules():
+    result = list_rules(category="naming")
+    assert result["total"] > 0
+    rule_ids = [r["id"] for r in result["rules"]]
+    assert "schema-naming" in rule_ids
+
+
+def test_list_rules_testing_includes_tdd():
+    result = list_rules(category="testing")
+    rule_ids = [r["id"] for r in result["rules"]]
+    assert "tdd-required" in rule_ids

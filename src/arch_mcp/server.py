@@ -13,8 +13,11 @@ from .tools import (
     check_architecture,
     get_architecture_guide,
     get_best_practices,
+    get_file_template,
+    get_naming_conventions,
     get_project_structure,
     get_rule,
+    get_tdd_workflow,
     list_rules,
     validate_code,
 )
@@ -107,6 +110,49 @@ def tool_get_architecture_guide() -> dict:
     Returns the recommended patterns, rules, and examples for each layer.
     """
     return get_architecture_guide()
+
+
+@mcp.tool()
+def tool_get_naming_conventions() -> dict:
+    """
+    Get mandatory naming conventions for files, classes, and functions.
+
+    Returns the required naming patterns that ALL code must follow.
+    These are NOT optional - they ensure consistency across all projects.
+    """
+    return get_naming_conventions()
+
+
+@mcp.tool()
+def tool_get_file_template(template_type: str, resource: str) -> dict:
+    """
+    Generate a file template for a given resource.
+
+    Args:
+        template_type: One of "router", "schemas", "service", "repository", "errors"
+        resource: The resource name in singular form (e.g., "user", "order", "product")
+
+    Returns a ready-to-use file with correct naming conventions applied.
+    """
+    return get_file_template(template_type, resource)
+
+
+@mcp.tool()
+def tool_get_tdd_workflow(feature: str) -> dict:
+    """
+    Get the TDD workflow for implementing a new feature.
+
+    Returns step-by-step instructions for Test-Driven Development:
+    1. Write failing tests first
+    2. Implement minimal code to pass
+    3. Refactor while keeping tests green
+
+    Args:
+        feature: The feature/resource name (e.g., "user", "order", "payment")
+
+    TDD is MANDATORY - all features must be developed test-first.
+    """
+    return get_tdd_workflow(feature)
 
 
 # ============================================================================

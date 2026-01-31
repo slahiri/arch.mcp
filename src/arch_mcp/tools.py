@@ -6,7 +6,7 @@ import re
 
 # Static fallbacks
 from .rules import ALL_RULES, RULES
-from .structures import STRUCTURES
+from .structures import FILE_TEMPLATES, NAMING_CONVENTIONS, STRUCTURES
 
 # Check if DB is configured
 USE_DB = bool(os.environ.get("DATABASE_URL"))
@@ -255,4 +255,189 @@ def get_architecture_guide() -> dict:
         },
         "dependency_flow": "api → application → domain ← infrastructure",
         "categories": list(rules_by_cat.keys()),
+    }
+
+
+def get_naming_conventions() -> dict:
+    """Get mandatory naming conventions for files, classes, and functions."""
+    return {
+        "overview": "Mandatory naming conventions for consistent Python APIs",
+        "conventions": NAMING_CONVENTIONS,
+        "note": "These conventions are NOT optional. All code must follow these patterns.",
+    }
+
+
+def get_file_template(template_type: str, resource: str) -> dict:
+    """Generate a file template for a given resource.
+
+    Args:
+        template_type: One of 'router', 'schemas', 'service', 'repository', 'errors'
+        resource: The resource name in singular form (e.g., 'user', 'order')
+    """
+    if template_type not in FILE_TEMPLATES:
+        return {
+            "error": f"Unknown template type '{template_type}'",
+            "available": list(FILE_TEMPLATES.keys()),
+        }
+
+    # Generate names
+    resource_lower = resource.lower()
+    resource_pascal = "".join(word.capitalize() for word in resource_lower.split("_"))
+    resource_plural = resource_lower + "s"  # Simple pluralization
+
+    template = FILE_TEMPLATES[template_type]
+    content = template.format(
+        feature=resource_lower,
+        resource=resource_lower,
+        resources=resource_plural,
+        Resource=resource_pascal,
+    )
+
+    return {
+        "template_type": template_type,
+        "resource": resource,
+        "filename": f"{resource_lower}_{template_type}.py" if template_type != "errors" else "errors.py",
+        "content": content,
+    }
+
+
+def get_tdd_workflow(feature: str) -> dict:
+    """Get the TDD workflow for implementing a new feature.
+
+    Args:
+        feature: The feature/resource name (e.g., 'user', 'order')
+    """
+    feature_lower = feature.lower()
+    feature_pascal = "".join(word.capitalize() for word in feature_lower.split("_"))
+
+    return {
+        "overview": f"TDD workflow for implementing '{feature}' feature",
+        "principle": "Write tests FIRST, then implement. Red → Green → Refactor.",
+        "steps": [
+            {
+                "step": 1,
+                "name": "Write failing test for schemas",
+                "description": "Define expected request/response shapes",
+                "file": f"tests/features/{feature_lower}/test_schemas.py",
+                "example": f'''import pytest
+from pydantic import ValidationError
+
+def test_{feature_lower}_create_requires_name():
+    """Test that {feature_pascal}Create requires a name field."""
+    from src.features.{feature_lower}.schemas import {feature_pascal}Create
+
+    with pytest.raises(ValidationError):
+        {feature_pascal}Create()  # Missing required fields
+
+def test_{feature_lower}_create_valid():
+    """Test valid {feature_pascal}Create schema."""
+    from src.features.{feature_lower}.schemas import {feature_pascal}Create
+
+    data = {feature_pascal}Create(name="Test")
+    assert data.name == "Test"
+''',
+            },
+            {
+                "step": 2,
+                "name": "Implement schemas to pass tests",
+                "description": "Create minimal Pydantic models",
+                "file": f"src/features/{feature_lower}/schemas.py",
+                "run": "pytest tests/features/{feature_lower}/test_schemas.py -v",
+            },
+            {
+                "step": 3,
+                "name": "Write failing test for service",
+                "description": "Define expected business logic behavior",
+                "file": f"tests/features/{feature_lower}/test_service.py",
+                "example": f'''import pytest
+from unittest.mock import AsyncMock
+
+@pytest.mark.asyncio
+async def test_create_{feature_lower}():
+    """Test {feature_pascal}Service.create returns created entity."""
+    from src.features.{feature_lower}.service import {feature_pascal}Service
+    from src.features.{feature_lower}.schemas import {feature_pascal}Create
+
+    mock_repo = AsyncMock()
+    mock_repo.save.return_value = {{"id": "123", "name": "Test"}}
+
+    service = {feature_pascal}Service(repository=mock_repo)
+    result = await service.create({feature_pascal}Create(name="Test"))
+
+    assert result["id"] == "123"
+    mock_repo.save.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_{feature_lower}_not_found():
+    """Test {feature_pascal}Service raises error when not found."""
+    from src.features.{feature_lower}.service import {feature_pascal}Service
+    from src.features.{feature_lower}.errors import {feature_pascal}NotFoundError
+
+    mock_repo = AsyncMock()
+    mock_repo.get.return_value = None
+
+    service = {feature_pascal}Service(repository=mock_repo)
+
+    with pytest.raises({feature_pascal}NotFoundError):
+        await service.get_by_id("nonexistent")
+''',
+            },
+            {
+                "step": 4,
+                "name": "Implement service to pass tests",
+                "description": "Create service with business logic",
+                "file": f"src/features/{feature_lower}/service.py",
+                "run": "pytest tests/features/{feature_lower}/test_service.py -v",
+            },
+            {
+                "step": 5,
+                "name": "Write failing test for API endpoints",
+                "description": "Define expected HTTP behavior",
+                "file": f"tests/features/{feature_lower}/test_router.py",
+                "example": f'''import pytest
+from httpx import AsyncClient, ASGITransport
+
+@pytest.mark.asyncio
+async def test_create_{feature_lower}_returns_201():
+    """Test POST /{feature_lower}s returns 201 with created entity."""
+    from src.main import app
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/{feature_lower}s/", json={{"name": "Test"}})
+
+    assert response.status_code == 201
+    assert "id" in response.json()
+
+@pytest.mark.asyncio
+async def test_get_{feature_lower}_returns_404():
+    """Test GET /{feature_lower}s/{{id}} returns 404 when not found."""
+    from src.main import app
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/{feature_lower}s/nonexistent")
+
+    assert response.status_code == 404
+''',
+            },
+            {
+                "step": 6,
+                "name": "Implement router to pass tests",
+                "description": "Create FastAPI router with endpoints",
+                "file": f"src/features/{feature_lower}/router.py",
+                "run": "pytest tests/features/{feature_lower}/test_router.py -v",
+            },
+            {
+                "step": 7,
+                "name": "Run all tests and refactor",
+                "description": "Ensure all tests pass, then refactor for clarity",
+                "run": f"pytest tests/features/{feature_lower}/ -v --cov=src/features/{feature_lower}",
+            },
+        ],
+        "test_commands": {
+            "run_all": "pytest tests/ -v",
+            "run_feature": f"pytest tests/features/{feature_lower}/ -v",
+            "with_coverage": f"pytest tests/features/{feature_lower}/ -v --cov=src/features/{feature_lower} --cov-report=term-missing",
+            "watch_mode": f"pytest-watch tests/features/{feature_lower}/",
+        },
+        "coverage_requirement": "Minimum 80% code coverage required",
     }
