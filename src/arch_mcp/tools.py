@@ -262,10 +262,15 @@ def get_file_template(template_type: str, resource: str) -> dict:
         Resource=resource_pascal,
     )
 
+    if template_type != "errors":
+        filename = f"{resource_lower}_{template_type}.py"
+    else:
+        filename = "errors.py"
+
     return {
         "template_type": template_type,
         "resource": resource,
-        "filename": f"{resource_lower}_{template_type}.py" if template_type != "errors" else "errors.py",
+        "filename": filename,
         "content": content,
     }
 
@@ -399,13 +404,19 @@ async def test_get_{feature_lower}_returns_404():
                 "step": 7,
                 "name": "Run all tests and refactor",
                 "description": "Ensure all tests pass, then refactor for clarity",
-                "run": f"pytest tests/features/{feature_lower}/ -v --cov=src/features/{feature_lower}",
+                "run": (
+                    f"pytest tests/features/{feature_lower}/ -v "
+                    f"--cov=src/features/{feature_lower}"
+                ),
             },
         ],
         "test_commands": {
             "run_all": "pytest tests/ -v",
             "run_feature": f"pytest tests/features/{feature_lower}/ -v",
-            "with_coverage": f"pytest tests/features/{feature_lower}/ -v --cov=src/features/{feature_lower} --cov-report=term-missing",
+            "with_coverage": (
+                f"pytest tests/features/{feature_lower}/ -v "
+                f"--cov=src/features/{feature_lower} --cov-report=term-missing"
+            ),
             "watch_mode": f"pytest-watch tests/features/{feature_lower}/",
         },
         "coverage_requirement": "Minimum 80% code coverage required",

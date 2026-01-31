@@ -21,7 +21,10 @@ NAMING_CONVENTIONS = {
         "models": "{Resource} (singular, PascalCase)",
     },
     "functions": {
-        "router_endpoints": "create_{resource}, get_{resource}, list_{resources}, update_{resource}, delete_{resource}",
+        "router_endpoints": (
+            "create_{resource}, get_{resource}, list_{resources}, "
+            "update_{resource}, delete_{resource}"
+        ),
         "service_methods": "create, get_by_id, list, update, delete, find_by_{field}",
         "repository_methods": "save, get, find_by_{field}, delete, exists",
     },
