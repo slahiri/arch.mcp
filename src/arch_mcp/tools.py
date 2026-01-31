@@ -1,60 +1,32 @@
 """MCP Tools for architecture validation"""
 
 import fnmatch
-import os
 import re
 
-# Static fallbacks
-from .rules import ALL_RULES, RULES
+from .config import flatten_rules, get_rules_source, load_rules
 from .structures import FILE_TEMPLATES, NAMING_CONVENTIONS, STRUCTURES
-
-# Check if DB is configured
-USE_DB = bool(os.environ.get("DATABASE_URL"))
 
 
 def _get_all_rules() -> list[dict]:
-    """Get all rules from DB or static fallback."""
-    if USE_DB:
-        from .db import fetch_rules
-        rules = fetch_rules()
-        if rules:
-            return rules
-    return ALL_RULES
+    """Get all rules as a flat list."""
+    return flatten_rules(load_rules())
 
 
 def _get_rules_by_category() -> dict[str, list[dict]]:
     """Get rules grouped by category."""
-    if USE_DB:
-        from .db import fetch_rules, get_categories
-        categories = get_categories()
-        if categories:
-            return {cat: fetch_rules(category=cat) for cat in categories}
-    return RULES
-
-
-def _get_structures() -> dict[str, dict]:
-    """Get structures from DB or static fallback."""
-    if USE_DB:
-        from .db import fetch_structures
-        structures = fetch_structures()
-        if structures:
-            return structures
-    return STRUCTURES
+    return load_rules()
 
 
 def list_rules(category: str | None = None, severity: str | None = None) -> dict:
     """List Python API architecture rules."""
-    if USE_DB:
-        from .db import fetch_rules, get_categories
-        rules = fetch_rules(category, severity)
-        categories = get_categories() or list(RULES.keys())
-    else:
-        rules = ALL_RULES
-        if category:
-            rules = [r for r in rules if r.get("category") == category.lower()]
-        if severity:
-            rules = [r for r in rules if r.get("severity") == severity.lower()]
-        categories = list(RULES.keys())
+    rules_by_cat = load_rules()
+    all_rules = flatten_rules(rules_by_cat)
+
+    rules = all_rules
+    if category:
+        rules = [r for r in rules if r.get("category") == category.lower()]
+    if severity:
+        rules = [r for r in rules if r.get("severity") == severity.lower()]
 
     return {
         "rules": [
@@ -68,17 +40,15 @@ def list_rules(category: str | None = None, severity: str | None = None) -> dict
             for r in rules
         ],
         "total": len(rules),
-        "categories": categories,
+        "categories": list(rules_by_cat.keys()),
+        "rules_source": get_rules_source(),
     }
 
 
 def get_rule(rule_id: str) -> dict:
     """Get full details of a rule including code examples."""
-    if USE_DB:
-        from .db import fetch_rule
-        rule = fetch_rule(rule_id)
-    else:
-        rule = next((r for r in ALL_RULES if r["id"] == rule_id), None)
+    all_rules = _get_all_rules()
+    rule = next((r for r in all_rules if r["id"] == rule_id), None)
 
     if not rule:
         return {"error": f"Rule '{rule_id}' not found"}
@@ -101,7 +71,7 @@ def validate_code(content: str, file_path: str) -> dict:
         applies_to = rule.get("applies_to", ["**/*.py"])
         exclude = rule.get("exclude", [])
 
-        # Handle JSONB fields from DB
+        # Ensure lists
         if isinstance(applies_to, str):
             applies_to = [applies_to]
         if isinstance(exclude, str):
@@ -143,10 +113,9 @@ def validate_code(content: str, file_path: str) -> dict:
 
 def get_project_structure(pattern: str = "clean-architecture") -> dict:
     """Get recommended Python API project structure."""
-    structures = _get_structures()
-    if pattern not in structures:
-        return {"error": f"Unknown pattern '{pattern}'", "available": list(structures.keys())}
-    return {"pattern": pattern, **structures[pattern]}
+    if pattern not in STRUCTURES:
+        return {"error": f"Unknown pattern '{pattern}'", "available": list(STRUCTURES.keys())}
+    return {"pattern": pattern, **STRUCTURES[pattern]}
 
 
 def get_best_practices(category: str) -> dict:
@@ -162,8 +131,7 @@ def get_best_practices(category: str) -> dict:
 def check_architecture(files: list[dict], pattern: str = "clean-architecture") -> dict:
     """Check if a codebase follows the architecture pattern consistently."""
     issues = []
-    structures = _get_structures()
-    structure = structures.get(pattern, {})
+    structure = STRUCTURES.get(pattern, {})
     layers = structure.get("layers", {})
 
     for file in files:
@@ -255,6 +223,7 @@ def get_architecture_guide() -> dict:
         },
         "dependency_flow": "api → application → domain ← infrastructure",
         "categories": list(rules_by_cat.keys()),
+        "rules_source": get_rules_source(),
     }
 
 
@@ -441,3 +410,10 @@ async def test_get_{feature_lower}_returns_404():
         },
         "coverage_requirement": "Minimum 80% code coverage required",
     }
+
+
+def init_rules() -> dict:
+    """Initialize a custom rules file in the current directory."""
+    from .config import init_custom_rules
+    init_custom_rules()
+    return {"status": "ok", "message": "Custom rules file created"}

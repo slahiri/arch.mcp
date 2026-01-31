@@ -2,10 +2,8 @@
 Architecture Controls MCP Server
 
 An MCP server providing architecture rules and best practices for Python APIs.
-Built with FastMCP 3.0.
+Built with FastMCP.
 """
-
-import os
 
 from fastmcp import FastMCP
 
@@ -18,6 +16,7 @@ from .tools import (
     get_project_structure,
     get_rule,
     get_tdd_workflow,
+    init_rules,
     list_rules,
     validate_code,
 )
@@ -37,8 +36,8 @@ def tool_list_rules(category: str | None = None, severity: str | None = None) ->
     List Python API architecture rules.
 
     Args:
-        category: Filter by category (security, data-access, error-handling,
-            api-design, logging, configuration, testing)
+        category: Filter by category (naming, structure, security, data-access,
+            error-handling, api-design, logging, configuration, testing)
         severity: Filter by severity (error, warning, info)
     """
     return list_rules(category, severity)
@@ -84,8 +83,8 @@ def tool_get_best_practices(category: str) -> dict:
     Get best practices for a category with code examples.
 
     Args:
-        category: Category (security, data-access, error-handling, api-design,
-            logging, configuration, testing)
+        category: Category (naming, structure, security, data-access, error-handling,
+            api-design, logging, configuration, testing)
     """
     return get_best_practices(category)
 
@@ -155,6 +154,17 @@ def tool_get_tdd_workflow(feature: str) -> dict:
     return get_tdd_workflow(feature)
 
 
+@mcp.tool()
+def tool_init_rules() -> dict:
+    """
+    Initialize a custom rules file in the current directory.
+
+    Creates .arch-mcp/rules.yaml with default rules that you can customize.
+    Edit this file to add, remove, or modify architecture rules for your project.
+    """
+    return init_rules()
+
+
 # ============================================================================
 # RESOURCES
 # ============================================================================
@@ -187,52 +197,9 @@ def resource_guide() -> str:
 # ============================================================================
 
 
-def init_database():
-    """Initialize database and seed data if needed."""
-    if not os.environ.get("DATABASE_URL"):
-        return
-
-    from .db import fetch_rules, init_db, seed_rules, seed_structures
-    from .rules import ALL_RULES
-    from .structures import STRUCTURES
-
-    # Initialize tables
-    init_db()
-
-    # Seed if empty
-    existing = fetch_rules()
-    if not existing:
-        seed_rules(ALL_RULES)
-        seed_structures(STRUCTURES)
-        print("Database seeded with default rules and structures")
-
-
 def main():
-    """Run the MCP server.
-
-    Supports two modes:
-    - stdio (default): For local CLI usage with Claude Code/Cursor
-    - http: For hosted service deployment (set MCP_TRANSPORT=http)
-
-    Environment variables:
-    - MCP_TRANSPORT: "stdio" (default) or "http"
-    - MCP_HOST: Host to bind (default: "0.0.0.0")
-    - MCP_PORT: Port to bind (default: 8000)
-    - DATABASE_URL: PostgreSQL connection string (optional)
-    - REDIS_URL: Redis connection string (optional)
-    """
-    # Initialize database if configured
-    init_database()
-
-    transport = os.environ.get("MCP_TRANSPORT", "stdio")
-
-    if transport == "http":
-        host = os.environ.get("MCP_HOST", "0.0.0.0")
-        # Railway sets PORT, fallback to MCP_PORT or 8000
-        port = int(os.environ.get("PORT", os.environ.get("MCP_PORT", "8000")))
-        mcp.run(transport="sse", host=host, port=port)
-    else:
-        mcp.run()
+    """Run the MCP server."""
+    mcp.run()
 
 
 if __name__ == "__main__":

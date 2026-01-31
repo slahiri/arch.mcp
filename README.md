@@ -5,37 +5,11 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-MCP server for Python API architecture controls. Validates code against architecture rules and best practices.
+Opinionated MCP server for Python API architecture controls. Enforces naming conventions, project structure, and TDD practices.
 
-**[Tutorial: Build a Python Microservice](docs/TUTORIAL.md)** - Step-by-step guide using arch-mcp in Cursor and Claude Code.
+**[Tutorial: Build a Python Microservice](docs/TUTORIAL.md)** - Step-by-step guide with TDD workflow.
 
-## Remote Service
-
-Use the hosted MCP server at `https://arch-mcp.sid.sh/sse` - no installation required.
-
-### Claude Code
-
-```bash
-claude mcp add arch-controls --url https://arch-mcp.sid.sh/sse
-```
-
-### Cursor
-
-Add to `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "arch-controls": {
-      "url": "https://arch-mcp.sid.sh/sse"
-    }
-  }
-}
-```
-
-## Running Locally
-
-Run the MCP server on your own machine.
+## Installation
 
 ### Claude Code
 
@@ -63,6 +37,45 @@ Add to `.cursor/mcp.json`:
 }
 ```
 
+## Customizing Rules
+
+Rules are defined in YAML and can be customized per-project.
+
+### Initialize custom rules
+
+Ask your AI assistant:
+> "Initialize custom architecture rules for this project"
+
+This creates `.arch-mcp/rules.yaml` with all default rules that you can edit.
+
+### Rules search order
+
+1. `ARCH_MCP_RULES` environment variable
+2. `.arch-mcp/rules.yaml` in current directory
+3. `arch-rules.yaml` in current directory
+4. `~/.arch-mcp/rules.yaml` in home directory
+5. Package defaults (fallback)
+
+### Example: Adding a custom rule
+
+```yaml
+# .arch-mcp/rules.yaml
+security:
+  - id: no-hardcoded-secrets
+    name: No hardcoded secrets
+    severity: error
+    pattern: "(password|secret|api_key)\\s*=\\s*['\"][^'\"]{8,}['\"]"
+    message: Hardcoded secret detected. Use environment variables.
+
+  # Add your custom rule
+  - id: require-auth-decorator
+    name: Require authentication decorator
+    severity: error
+    pattern: "@router\\.(get|post|put|delete).*\\n(?!.*@require_auth)"
+    message: All endpoints must use @require_auth decorator.
+    applies_to: ["**/router.py", "**/routes.py"]
+```
+
 ## Tools
 
 | Tool | Description |
@@ -77,6 +90,7 @@ Add to `.cursor/mcp.json`:
 | `tool_get_naming_conventions` | **Mandatory** naming patterns for files, classes, functions |
 | `tool_get_file_template` | Generate starter files with correct naming |
 | `tool_get_tdd_workflow` | Step-by-step TDD workflow for a feature |
+| `tool_init_rules` | Initialize custom rules file in current directory |
 
 ## Rule Categories
 
@@ -104,7 +118,7 @@ Once connected, ask your AI assistant:
 - "Generate a service template for orders"
 - "Show me the naming conventions"
 - "Validate this code against architecture rules"
-- "Check if my imports follow clean architecture"
+- "Initialize custom rules for this project"
 
 ## Development
 
