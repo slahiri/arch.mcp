@@ -18,22 +18,17 @@ def _get_package_rules_path() -> Path:
 
     Handles both:
     - Development: rules/default.yaml at repo root
-    - Installed package: bundled default_rules.yaml
+    - Installed package: bundled default_rules.yaml in package dir
     """
-    # Try development path first (rules/ at repo root)
-    dev_path = Path(__file__).parent.parent.parent / "rules" / "default.yaml"
-    if dev_path.exists():
-        return dev_path
-
-    # Fall back to bundled rules in package
+    # First check bundled rules in package (works for both installed and Docker)
     bundled_path = Path(__file__).parent / "default_rules.yaml"
     if bundled_path.exists():
         return bundled_path
 
-    # Last resort: check if rules folder is alongside the package
-    alt_path = Path(__file__).parent.parent / "rules" / "default.yaml"
-    if alt_path.exists():
-        return alt_path
+    # Try development path (rules/ at repo root)
+    dev_path = Path(__file__).parent.parent.parent / "rules" / "default.yaml"
+    if dev_path.exists():
+        return dev_path
 
     raise FileNotFoundError("Could not find default rules file")
 

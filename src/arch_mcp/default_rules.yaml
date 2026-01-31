@@ -1,0 +1,309 @@
+# Architecture Rules for Python APIs
+# Copy this file to ~/.arch-mcp/rules.yaml to customize
+
+naming:
+  - id: schema-naming
+    name: Schema naming convention
+    severity: error
+    description: Pydantic schemas must follow {Resource}Create, {Resource}Update, {Resource}Response pattern.
+    best_practice: true
+    example: |
+      # Good
+      class UserCreate(BaseModel): ...
+      class UserUpdate(BaseModel): ...
+      class UserResponse(BaseModel): ...
+
+      # Bad
+      class CreateUser(BaseModel): ...      # Wrong order
+      class UserDTO(BaseModel): ...         # Don't use DTO suffix
+
+  - id: service-naming
+    name: Service class naming
+    severity: error
+    description: Service classes must be named {Resource}Service.
+    pattern: "class\\s+\\w+(?<!Service)\\s*\\(.*\\):\\s*$"
+    applies_to: ["**/service.py", "**/*_service.py", "**/services/**"]
+    best_practice: true
+    example: |
+      # Good
+      class UserService: ...
+      class OrderService: ...
+
+      # Bad
+      class UserManager: ...    # Use Service, not Manager
+
+  - id: repository-naming
+    name: Repository class naming
+    severity: error
+    description: Repository classes must be named {Resource}Repository.
+    best_practice: true
+    example: |
+      # Good
+      class UserRepository(Protocol): ...
+
+      # Bad
+      class UserDAO: ...        # Use Repository, not DAO
+
+  - id: error-naming
+    name: Exception class naming
+    severity: warning
+    description: Custom exceptions must end with Error.
+    pattern: "class\\s+\\w+Exception\\s*\\("
+    message: Use 'Error' suffix instead of 'Exception'.
+    best_practice: true
+
+  - id: file-naming
+    name: File naming convention
+    severity: error
+    description: Files must use snake_case and follow standard suffixes.
+    best_practice: true
+    example: |
+      router.py or user_router.py
+      schemas.py or user_schemas.py
+      service.py or user_service.py
+      repository.py or user_repository.py
+
+  - id: endpoint-naming
+    name: API endpoint function naming
+    severity: warning
+    description: Router endpoint functions must follow CRUD naming.
+    best_practice: true
+    example: |
+      # Good
+      async def create_user(...): ...
+      async def get_user(...): ...
+      async def list_users(...): ...
+
+      # Bad
+      async def add_user(...): ...    # Use create_, not add_
+
+structure:
+  - id: one-router-per-feature
+    name: One router per feature
+    severity: error
+    description: Each feature/resource should have exactly one router file.
+    best_practice: true
+
+  - id: service-per-feature
+    name: One service per feature
+    severity: warning
+    description: Each feature should have one primary service class.
+    best_practice: true
+
+  - id: shared-code-location
+    name: Shared code in shared/
+    severity: error
+    description: Code used by multiple features must live in shared/ directory.
+    best_practice: true
+
+  - id: config-location
+    name: Configuration in core/config.py
+    severity: error
+    description: All configuration must be in core/config.py using pydantic-settings.
+    best_practice: true
+
+  - id: test-file-location
+    name: Tests mirror source structure
+    severity: warning
+    description: Test files should mirror the source structure.
+    best_practice: true
+
+security:
+  - id: no-hardcoded-secrets
+    name: No hardcoded secrets
+    severity: error
+    description: Never hardcode passwords, API keys, or tokens.
+    pattern: "(password|secret|api_key|apikey|token|jwt)\\s*=\\s*['\"][^'\"]{8,}['\"]"
+    message: Hardcoded secret detected. Use environment variables.
+    fix: Move to environment variable and access via pydantic-settings.
+
+  - id: no-sql-string-concat
+    name: No SQL string concatenation
+    severity: error
+    description: Prevent SQL injection by using parameterized queries.
+    pattern: "(execute|raw)\\s*\\(\\s*f['\"]|\\.format\\s*\\([^)]*\\)\\s*\\)|%\\s*\\("
+    message: Possible SQL injection. Use parameterized queries or ORM.
+    fix: Use SQLAlchemy ORM or parameterized queries.
+
+  - id: validate-input
+    name: Validate all inputs
+    severity: error
+    description: Always validate request data using Pydantic.
+    best_practice: true
+    example: |
+      from pydantic import BaseModel, EmailStr, Field
+
+      class CreateUserRequest(BaseModel):
+          email: EmailStr
+          name: str = Field(min_length=1, max_length=100)
+
+data-access:
+  - id: use-repository-pattern
+    name: Use repository pattern
+    severity: warning
+    description: Abstract database access behind repository classes.
+    best_practice: true
+    example: |
+      class UserRepository(ABC):
+          @abstractmethod
+          async def find_by_id(self, id: str) -> User | None: ...
+
+  - id: no-db-in-routes
+    name: No database calls in route handlers
+    severity: warning
+    description: Route handlers should call services, not database directly.
+    pattern: "(session|db)\\.(query|execute|add|delete|get|scalar)"
+    applies_to: ["**/api/**", "**/routes/**", "**/routers/**"]
+    message: Database access should be in repositories/services, not routes.
+
+  - id: use-async-db
+    name: Use async database operations
+    severity: info
+    description: Use async SQLAlchemy for non-blocking database access.
+    best_practice: true
+
+error-handling:
+  - id: no-bare-except
+    name: No bare except
+    severity: error
+    description: Always catch specific exceptions.
+    pattern: "except\\s*:"
+    message: Don't use bare 'except:'. Catch specific exceptions.
+
+  - id: no-generic-exception
+    name: No generic Exception catch
+    severity: warning
+    description: Avoid catching generic Exception unless re-raising.
+    pattern: "except\\s+Exception\\s*:"
+    message: Avoid catching generic Exception.
+
+  - id: use-custom-exceptions
+    name: Use custom exceptions
+    severity: info
+    description: Define custom exception classes for different error scenarios.
+    best_practice: true
+    example: |
+      class NotFoundError(AppError):
+          def __init__(self, resource: str, id: str):
+              super().__init__(f"{resource} '{id}' not found", "NOT_FOUND", 404)
+
+api-design:
+  - id: use-pydantic-schemas
+    name: Use Pydantic for request/response
+    severity: error
+    description: Always use Pydantic models for request and response schemas.
+    best_practice: true
+
+  - id: use-dependency-injection
+    name: Use dependency injection
+    severity: warning
+    description: Use FastAPI's Depends for dependency injection.
+    best_practice: true
+    example: |
+      @router.get('/users/{id}')
+      async def get_user(id: str, service: UserService = Depends(get_user_service)):
+          return await service.get_by_id(id)
+
+logging:
+  - id: no-print
+    name: No print statements
+    severity: warning
+    pattern: "\\bprint\\s*\\("
+    applies_to: ["**/*.py"]
+    exclude: ["**/tests/**", "**/*_test.py"]
+    message: Use logging module instead of print().
+
+  - id: use-structlog
+    name: Use structured logging
+    severity: info
+    description: Use structlog for structured, contextual logging.
+    best_practice: true
+    example: |
+      import structlog
+      logger = structlog.get_logger()
+      logger.info("user_created", user_id=user.id)
+
+configuration:
+  - id: no-direct-env
+    name: No direct env access
+    severity: warning
+    pattern: "os\\.(environ|getenv)\\s*[\\[\\(]"
+    applies_to: ["**/*.py"]
+    exclude: ["**/config.py", "**/settings.py"]
+    message: Use pydantic-settings for configuration.
+
+  - id: use-pydantic-settings
+    name: Use pydantic-settings
+    severity: info
+    description: Centralize configuration with pydantic-settings.
+    best_practice: true
+    example: |
+      from pydantic_settings import BaseSettings
+
+      class Settings(BaseSettings):
+          database_url: str
+          debug: bool = False
+          model_config = {"env_file": ".env"}
+
+testing:
+  - id: tdd-required
+    name: TDD approach required
+    severity: error
+    description: All features MUST be developed using Test-Driven Development.
+    best_practice: true
+    example: |
+      # TDD Workflow: Red -> Green -> Refactor
+      # 1. Write a FAILING test first
+      # 2. Write MINIMAL code to pass
+      # 3. Refactor while keeping tests green
+
+  - id: test-before-implementation
+    name: Tests before implementation
+    severity: error
+    description: Never write implementation code without a failing test first.
+    best_practice: true
+
+  - id: test-with-pytest
+    name: Use pytest for testing
+    severity: error
+    description: Use pytest with async support. No unittest.
+    best_practice: true
+    example: |
+      import pytest
+      from httpx import AsyncClient, ASGITransport
+
+      @pytest.mark.asyncio
+      async def test_create_user():
+          async with AsyncClient(...) as client:
+              response = await client.post("/users/", json={...})
+          assert response.status_code == 201
+
+  - id: test-file-naming
+    name: Test file naming convention
+    severity: error
+    description: Test files must be named test_{module}.py.
+    best_practice: true
+
+  - id: test-coverage-minimum
+    name: Minimum 80% test coverage
+    severity: error
+    description: All code must have at least 80% test coverage.
+    best_practice: true
+
+  - id: mock-external-dependencies
+    name: Mock external dependencies
+    severity: warning
+    description: Unit tests must mock databases and external services.
+    best_practice: true
+
+  - id: test-isolation
+    name: Tests must be isolated
+    severity: error
+    description: Each test must be independent. No shared state.
+    best_practice: true
+
+  - id: test-happy-and-error-paths
+    name: Test both happy and error paths
+    severity: warning
+    description: Every function needs tests for success AND failure cases.
+    best_practice: true
