@@ -5,6 +5,8 @@ An MCP server providing architecture rules and best practices for Python APIs.
 Built with FastMCP.
 """
 
+import os
+
 from fastmcp import FastMCP
 
 from .tools import (
@@ -198,8 +200,24 @@ def resource_guide() -> str:
 
 
 def main():
-    """Run the MCP server."""
-    mcp.run()
+    """Run the MCP server.
+
+    Supports two modes:
+    - stdio (default): For local CLI usage with Claude Code/Cursor
+    - http/sse: For hosted service deployment (set MCP_TRANSPORT=http)
+
+    Environment variables:
+    - MCP_TRANSPORT: "stdio" (default) or "http"
+    - PORT: Port to bind for HTTP mode (default: 8000)
+    """
+    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+
+    if transport == "http":
+        host = "0.0.0.0"
+        port = int(os.environ.get("PORT", "8000"))
+        mcp.run(transport="sse", host=host, port=port)
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":
