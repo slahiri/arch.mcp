@@ -1,125 +1,159 @@
-# Tutorial: Building a Python Microservice with arch-mcp
+# Tutorial: Build a Microservice with Claude Prompts
 
-Build a complete microservice using only Claude prompts with arch-mcp.
+Build a complete Python microservice using only Claude prompts.
 
 ## Prerequisites
 
-- Claude Code or Cursor with arch-mcp connected
+- Claude Code with arch-mcp connected
 - Python 3.11+
 
-## Tech Stack (Auto-configured)
-
-| Tool | Version | Purpose |
-|------|---------|---------|
-| FastAPI | 0.115.x | Web framework |
-| Pydantic | 2.10.x | Data validation |
-| pytest | 8.3.x | Testing |
-| pytest-cov | 6.0.x | Coverage (80% min) |
-| httpx | 0.28.x | Async HTTP client |
-| structlog | 24.4.x | Structured logging |
-| uvicorn | 0.34.x | ASGI server |
-| ruff | 0.9.x | Linting |
+```bash
+claude mcp add --transport sse arch-controls https://arch-mcp.sid.sh/sse
+```
 
 ---
 
-## Step 1: Create the Project
+## Part 1: Create the Project
 
-> **Prompt:** "Create a new microservice called product-service"
+### Prompt 1: Scaffold Project
 
-This scaffolds a complete project with:
-- FastAPI app with health endpoints
-- Pydantic settings configuration
-- Structured logging
-- Pytest with 80% coverage requirement
-- Base error classes
-- `.arch-mcp/rules.yaml` for custom rules
+> **"Create a new microservice called product-service"**
 
-**Follow the output instructions:**
+Output:
+```
+✓ Project scaffolded at: product-service
+
+Next steps:
+  cd product-service
+  python -m venv .venv
+  source .venv/bin/activate
+  pip install -e '.[dev]'
+  pytest
+```
+
+### Setup
+
 ```bash
 cd product-service
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-pytest  # Verify setup
+pytest  # Should pass
+```
+
+### What You Get
+
+```
+product-service/
+├── src/
+│   ├── main.py              # FastAPI app
+│   ├── core/
+│   │   └── config.py        # Pydantic settings
+│   ├── shared/
+│   │   ├── errors.py        # Base exceptions
+│   │   └── schemas.py       # Shared schemas
+│   └── features/
+│       └── health/          # Health endpoints
+├── tests/
+│   ├── conftest.py          # Pytest fixtures
+│   └── test_health.py       # Health tests
+├── pyproject.toml           # Dependencies
+├── .gitignore
+└── .arch-mcp/
+    └── rules.yaml           # Custom rules
 ```
 
 ---
 
-## Step 2: Understand the Conventions
+## Part 2: Understand the Rules
 
-> **Prompt:** "What are the mandatory naming conventions?"
+### Prompt 2: Get Naming Conventions
 
-Key patterns:
-| Type | Pattern | Example |
-|------|---------|---------|
-| Schemas | `{Resource}Create`, `{Resource}Response` | `ProductCreate` |
-| Services | `{Resource}Service` | `ProductService` |
-| Repositories | `{Resource}Repository` | `ProductRepository` |
-| Errors | `{Resource}NotFoundError` | `ProductNotFoundError` |
+> **"What are the naming conventions?"**
 
----
-
-## Step 3: Get the TDD Workflow
-
-> **Prompt:** "Get the TDD workflow for implementing a product feature"
-
-This explains the Red → Green → Refactor cycle:
-1. Write failing tests first
-2. Implement minimal code to pass
-3. Refactor while keeping tests green
-
----
-
-## Step 4: Add the Product Feature
-
-> **Prompt:** "Add a product feature to my project"
-
-This creates:
+Output:
 ```
-src/features/products/
-├── __init__.py
-├── schemas.py      # ProductCreate, ProductResponse
-├── errors.py       # ProductNotFoundError
-├── repository.py   # ProductRepository interface
-├── service.py      # ProductService
-└── router.py       # API endpoints
+Mandatory naming patterns:
 
-tests/features/products/
-├── test_schemas.py
-├── test_service.py
-└── test_router.py
+Classes:
+  - Schemas: {Resource}Create, {Resource}Response
+  - Services: {Resource}Service
+  - Repositories: {Resource}Repository
+  - Errors: {Resource}NotFoundError
+
+Files:
+  - product_service.py
+  - product_router.py
+  - product_schemas.py
 ```
 
+### Prompt 3: Get Project Structure
+
+> **"What's the recommended project structure?"**
+
+Shows clean-architecture, feature-based, or simple patterns.
+
 ---
 
-## Step 5: Register the Router
+## Part 3: Add a Feature
 
-> **Prompt:** "How do I register the product router in main.py?"
+### Prompt 4: Scaffold Feature
+
+> **"Add a product feature to my project"**
+
+Output:
+```
+✓ Feature 'product' scaffolded
+
+Files created:
+  - src/features/product/schemas.py
+  - src/features/product/errors.py
+  - src/features/product/repository.py
+  - src/features/product/service.py
+  - src/features/product/router.py
+  - tests/features/product/test_schemas.py
+  - tests/features/product/test_service.py
+  - tests/features/product/test_router.py
+
+Next steps:
+  1. Add router to src/main.py
+  2. Run: pytest tests/features/product/ -v
+```
+
+### Register the Router
 
 Update `src/main.py`:
-```python
-from src.features.products import router as products_router
 
-app.include_router(products_router)
+```python
+from src.features.product import router as product_router
+
+app.include_router(product_router)
 ```
 
----
-
-## Step 6: Run Tests
+### Run Tests
 
 ```bash
-pytest tests/features/products/ -v
+pytest tests/features/product/ -v
+# All tests pass - TDD structure already in place
 ```
-
-All tests should pass - the scaffolded code follows TDD with tests already written.
 
 ---
 
-## Step 7: Customize the Schema
+## Part 4: Customize the Feature
 
-> **Prompt:** "I need to add price and category fields to my product schema"
+### Prompt 5: Get TDD Workflow
 
-Update `src/features/products/schemas.py`:
+> **"Get the TDD workflow for implementing product"**
+
+Shows:
+1. Write failing test
+2. Implement to pass
+3. Refactor
+
+### Add Fields to Schema
+
+Edit `src/features/product/schemas.py`:
+
 ```python
 from decimal import Decimal
 from pydantic import BaseModel, Field
@@ -141,98 +175,110 @@ class ProductResponse(BaseModel):
     model_config = {"from_attributes": True}
 ```
 
----
+### Add Tests for New Fields
 
-## Step 8: Add More Tests
+Add to `tests/features/product/test_schemas.py`:
 
-> **Prompt:** "Generate test cases for product price validation"
-
-Add to `tests/features/products/test_schemas.py`:
 ```python
 def test_price_must_be_positive(self):
-    from src.features.products.schemas import ProductCreate
+    from src.features.product.schemas import ProductCreate
 
     with pytest.raises(ValidationError):
-        ProductCreate(name="Widget", price=-10, category="electronics")
-
-def test_price_cannot_be_zero(self):
-    from src.features.products.schemas import ProductCreate
-
-    with pytest.raises(ValidationError):
-        ProductCreate(name="Widget", price=0, category="electronics")
+        ProductCreate(name="Test", price=-10, category="electronics")
 ```
 
 ---
 
-## Step 9: Validate Architecture
+## Part 5: Validate Your Code
 
-> **Prompt:** "Validate my products feature against architecture rules"
+### Prompt 6: Validate Code
 
-or
+> **"Validate my product feature against architecture rules"**
 
-> **Prompt:** "Check my codebase for architecture violations"
+Or paste specific code:
 
-This verifies:
-- Naming conventions are followed
-- No layer violations
-- No security issues (hardcoded secrets, SQL injection)
-- Proper error handling
+> **"Validate this code:**
+> ```python
+> def get_user():
+>     try:
+>         return db.query()
+>     except:
+>         pass
+> ```
+> **"**
+
+Output:
+```
+Violations:
+  - no-bare-except (error): Don't use bare 'except:'
+    Line 4: except:
+    Fix: Catch specific exceptions
+```
+
+### Prompt 7: Check Full Architecture
+
+> **"Check my codebase for architecture violations"**
+
+Checks:
+- Layer violations (domain importing infrastructure)
+- Naming convention violations
+- Security issues
 
 ---
 
-## Step 10: Add Another Feature
+## Part 6: Add More Features
 
-> **Prompt:** "Add an order feature to my project"
+### Prompt 8: Add Another Feature
 
-Repeat the process for each feature. The MCP ensures consistency across all features.
+> **"Add an order feature to my project"**
+
+Same structure, consistent patterns.
+
+### Prompt 9: Best Practices
+
+> **"Show best practices for error-handling"**
+
+> **"Show best practices for testing"**
+
+> **"Show best practices for security"**
 
 ---
 
-## Step 11: Get Best Practices
+## Part 7: Production Setup
 
-> **Prompt:** "Show best practices for error-handling"
+### Prompt 10: Docker Setup
 
-> **Prompt:** "Show best practices for security"
-
-> **Prompt:** "Show best practices for testing"
-
----
-
-## Step 12: Create Docker Setup
-
-> **Prompt:** "Generate a Dockerfile for my microservice"
+> **"How should I containerize this service?"**
 
 Create `Dockerfile`:
+
 ```dockerfile
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
 COPY pyproject.toml .
-RUN pip install .
+RUN pip install --no-cache-dir .
 
 COPY src/ src/
 
-RUN adduser --disabled-password --gecos "" appuser && \
-    chown -R appuser:appuser /app
+RUN adduser --disabled-password appuser && chown -R appuser /app
 USER appuser
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"
 
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 Create `docker-compose.yml`:
-```yaml
-version: "3.9"
 
+```yaml
 services:
   app:
     build: .
@@ -240,28 +286,32 @@ services:
       - "8000:8000"
     environment:
       - APP_NAME=product-service
-      - DEBUG=false
 ```
 
 Create `.dockerignore`:
+
 ```
 .git/
 .venv/
 __pycache__/
-*.pyc
 .pytest_cache/
 .coverage
-.ruff_cache/
 .env
+```
+
+### Build & Run
+
+```bash
+docker compose up --build
+curl http://localhost:8000/health
 ```
 
 ---
 
-## Step 13: Create CI/CD
-
-> **Prompt:** "Generate a GitHub Actions workflow for CI"
+## Part 8: CI/CD
 
 Create `.github/workflows/ci.yml`:
+
 ```yaml
 name: CI
 
@@ -269,7 +319,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
   test:
@@ -281,62 +330,80 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-
-      - name: Lint
-        run: ruff check src/ tests/
-
-      - name: Test
-        run: pytest --cov=src --cov-report=xml --cov-fail-under=80
+      - run: pip install -e ".[dev]"
+      - run: ruff check src/ tests/
+      - run: pytest --cov=src --cov-fail-under=80
 
   docker:
     runs-on: ubuntu-latest
     needs: test
     steps:
       - uses: actions/checkout@v4
-      - name: Build
-        run: docker build -t product-service .
+      - run: docker build -t product-service .
 ```
 
 ---
 
-## Quick Reference: All Prompts
+## Prompt Reference
 
 | Task | Prompt |
 |------|--------|
 | Create project | "Create a new microservice called {name}" |
-| Add feature | "Add a {feature} feature to my project" |
-| Get conventions | "What are the mandatory naming conventions?" |
-| Get TDD workflow | "Get the TDD workflow for implementing {feature}" |
-| Generate template | "Generate a {type} template for {resource}" |
-| Validate code | "Validate this code against architecture rules" |
-| Check architecture | "Check my codebase for architecture violations" |
-| Best practices | "Show best practices for {category}" |
+| Add feature | "Add a {name} feature to my project" |
+| TDD workflow | "Get the TDD workflow for {feature}" |
+| Naming rules | "What are the naming conventions?" |
 | Project structure | "What's the recommended project structure?" |
+| Validate code | "Validate this code against architecture rules" |
+| Check architecture | "Check my codebase for violations" |
+| Best practices | "Show best practices for {category}" |
 | List rules | "List all {category} rules" |
+| Get rule details | "Explain the {rule-id} rule" |
+| Custom rules | "Initialize custom architecture rules" |
+
+---
+
+## Tech Stack
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| fastapi | 0.115.x | Web framework |
+| pydantic | 2.10.x | Validation |
+| pydantic-settings | 2.7.x | Configuration |
+| structlog | 24.4.x | Logging |
+| uvicorn | 0.34.x | Server |
+| pytest | 8.3.x | Testing |
+| pytest-cov | 6.0.x | Coverage |
+| pytest-asyncio | 0.25.x | Async tests |
+| httpx | 0.28.x | HTTP client |
+| ruff | 0.9.x | Linting |
 
 ---
 
 ## Summary
 
-Everything is driven by prompts:
+Build microservices with prompts:
 
-1. **"Create a new microservice called product-service"** → Full project
-2. **"Add a product feature"** → Feature with tests
-3. **"Validate my code"** → Architecture compliance
-4. **"Show best practices for testing"** → Guidance
+```
+1. "Create a new microservice called product-service"
+   → Complete project scaffolded
 
-The MCP enforces:
-- ✅ Consistent naming (`ProductService`, `ProductCreate`)
-- ✅ TDD workflow (tests first)
-- ✅ 80% coverage minimum
-- ✅ Clean architecture (no layer violations)
-- ✅ Security rules (no hardcoded secrets)
+2. "Add a product feature to my project"
+   → Feature with schemas, service, router, tests
+
+3. "Validate my code"
+   → Architecture compliance check
+
+4. "Show best practices for testing"
+   → Guidance and examples
+```
+
+Everything follows:
+- ✅ Consistent naming conventions
+- ✅ TDD workflow (tests included)
+- ✅ 80% coverage requirement
+- ✅ Clean architecture
+- ✅ Security rules
